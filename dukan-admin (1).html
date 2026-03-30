@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>দোকান Admin Panel</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2330;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --amber:#f0a500;--amber2:#ffc233;--amber-d:rgba(240,165,0,0.12);
+  --red:#e05252;--red-d:rgba(224,82,82,0.1);
+  --green:#3fb950;--green-d:rgba(63,185,80,0.1);
+  --blue:#58a6ff;--blue-d:rgba(88,166,255,0.1);
+  --text:#e6edf3;--text2:rgba(139,148,158,0.85);--text3:rgba(110,118,129,0.7);
+  --r:12px;
+}
+html,body,#root{height:100%;background:var(--bg);color:var(--text);font-family:'Noto Sans Bengali',sans-serif}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:rgba(240,165,0,0.2);border-radius:99px}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+
+.fade{animation:fadeUp .3s cubic-bezier(.16,1,.3,1) both}
+.sp{display:inline-block;width:15px;height:15px;border:2px solid rgba(240,165,0,.25);border-top-color:var(--amber);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r)}
+.card-amber{background:rgba(240,165,0,0.07);border:1px solid rgba(240,165,0,0.2);border-radius:var(--r)}
+.card-green{background:var(--green-d);border:1px solid rgba(63,185,80,0.2);border-radius:var(--r)}
+.card-red{background:var(--red-d);border:1px solid rgba(224,82,82,0.2);border-radius:var(--r)}
+
+.inp{width:100%;padding:10px 13px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text);font-size:13px;font-family:'Noto Sans Bengali',sans-serif;outline:none;transition:all .2s}
+.inp:focus{border-color:rgba(240,165,0,0.5);background:rgba(240,165,0,0.04)}
+.inp::placeholder{color:var(--text3)}
+.inp-lbl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px;font-family:'DM Mono',monospace}
+
+.btn{padding:9px 18px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:'Noto Sans Bengali',sans-serif;transition:all .18s}
+.btn-amber{background:linear-gradient(135deg,#b07800,#f0a500);color:#0d0800;box-shadow:0 3px 16px rgba(240,165,0,0.3)}
+.btn-amber:hover{transform:translateY(-1px);box-shadow:0 5px 22px rgba(240,165,0,0.4)}
+.btn-amber:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-green{background:rgba(63,185,80,0.18);color:var(--green);border:1px solid rgba(63,185,80,0.3)}
+.btn-green:hover{background:rgba(63,185,80,0.28)}
+.btn-red{background:var(--red-d);color:var(--red);border:1px solid rgba(224,82,82,0.3)}
+.btn-red:hover{background:rgba(224,82,82,0.2)}
+.btn-sm{padding:5px 11px;font-size:11px;border-radius:8px}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{background:rgba(255,255,255,.06);color:var(--text)}
+
+.nav-btn{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid transparent;cursor:pointer;background:transparent;color:var(--text2);font-size:13px;font-weight:600;font-family:'Noto Sans Bengali',sans-serif;transition:all .18s;text-align:left;margin-bottom:2px}
+.nav-btn:hover{background:rgba(240,165,0,0.07);color:var(--amber)}
+.nav-btn.active{background:rgba(240,165,0,0.12);color:var(--amber);border-color:rgba(240,165,0,0.22)}
+
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{padding:9px 13px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);font-family:'DM Mono',monospace}
+.tbl td{padding:11px 13px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(240,165,0,.03)}
+.tbl-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+
+.sc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:15px;position:relative;overflow:hidden}
+.sc::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent)}
+.sc-val{font-size:22px;font-weight:900;margin-bottom:3px;font-family:'DM Mono',monospace}
+.sc-lbl{font-size:11px;color:var(--text3)}
+
+.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:11px 17px;border-radius:11px;font-size:13px;font-weight:700;animation:fadeUp .3s ease}
+.t-ok{background:var(--green-d);border:1px solid rgba(63,185,80,.4);color:var(--green)}
+.t-err{background:var(--red-d);border:1px solid rgba(224,82,82,.4);color:var(--red)}
+.t-info{background:var(--blue-d);border:1px solid rgba(88,166,255,.3);color:var(--blue)}
+
+.badge{padding:3px 9px;border-radius:999px;font-size:10px;font-weight:800;font-family:'DM Mono',monospace}
+.badge-green{background:var(--green-d);color:var(--green);border:1px solid rgba(63,185,80,.25)}
+.badge-red{background:var(--red-d);color:var(--red);border:1px solid rgba(224,82,82,.25)}
+.badge-amber{background:var(--amber-d);color:var(--amber);border:1px solid rgba(240,165,0,.25)}
+
+.login-bg{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 30%,rgba(240,165,0,.08),transparent 60%),var(--bg)}
+
+.backdrop{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:18px;padding:24px;width:420px;max-width:100%;animation:fadeUp .3s ease both}
+
+.mono{font-family:'DM Mono',monospace}
+
+/* Rules helper box */
+.rules-box{background:rgba(88,166,255,0.07);border:1px solid rgba(88,166,255,.25);border-radius:14px;padding:16px;margin-top:12px}
+.rules-pre{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:10px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;color:#79c0ff;white-space:pre;overflow-x:auto;margin-top:10px;line-height:1.6}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+// ════════════ FIREBASE ════════════
+const FB_CONFIG = {
+  apiKey:            "AIzaSyB3lYDIr8ElAWk-jwnOWxubtVS-TeSSyOg",
+  authDomain:        "uyguy-ab047.firebaseapp.com",
+  projectId:         "uyguy-ab047",
+  storageBucket:     "uyguy-ab047.firebasestorage.app",
+  messagingSenderId: "297739792713",
+  appId:             "1:297739792713:web:72af3ba75fabcacb3caa98",
+};
+
+let db;
+try {
+  if (!firebase.apps.length) {
+    firebase.initializeApp(FB_CONFIG);
+  }
+  db = firebase.firestore();
+} catch(e) { console.error('Firebase init error:', e); }
+
+const DOC = () => db.collection('dukan_data').doc('main');
+
+// ════════════ CONSTANTS ════════════
+const ADMIN_U = 'admin';
+const ADMIN_P = 'dukan@123';
+
+// ════════════ HELPERS ════════════
+const fmtEN = n => '৳' + parseFloat(n||0).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:0});
+const todayKey = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+const fmtDate = ts => ts ? new Date(ts).toLocaleDateString('bn-BD',{day:'numeric',month:'short',year:'numeric'}) : '—';
+
+// ════════════ TOAST ════════════
+let _tid=0;
+function useToast() {
+  const [toasts,set]=useState([]);
+  const push=useCallback((msg,type='ok')=>{
+    const id=++_tid;
+    set(p=>[...p,{id,msg,type}]);
+    setTimeout(()=>set(p=>p.filter(t=>t.id!==id)),3500);
+  },[]);
+  return {toasts,push};
+}
+
+// ════════════ DB OPS ════════════
+async function loadData() {
+  if (!db) throw new Error('Firebase সংযোগ নেই');
+  const snap = await DOC().get();
+  if (!snap.exists) {
+    const defaultData = { settings:{shopName:'আমার দোকান',shopSub:'লাইভ হিসাব'}, days:[], baki:[], joma:0 };
+    await DOC().set(defaultData);
+    return defaultData;
+  }
+  return snap.data();
+}
+
+async function saveData(data) {
+  if (!db) throw new Error('Firebase সংযোগ নেই');
+  await DOC().set(data, { merge: false });
+}
+
+// ════════════ FIREBASE ERROR BOX ════════════
+function FirebaseErrorBox({ error, onRetry }) {
+  const isPermission = error && (error.includes('permission-denied') || error.includes('Missing or insufficient permissions') || error.includes('permissions'));
+  const RULES = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /dukan_data/{doc} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}`;
+
+  return (
+    <div style={{padding:'24px',maxWidth:'600px',margin:'0 auto'}}>
+      <div style={{background:'rgba(224,82,82,.08)',border:'2px solid rgba(224,82,82,.3)',borderRadius:'18px',padding:'24px'}}>
+        <div style={{fontSize:'36px',marginBottom:'12px'}}>🔥</div>
+        <h3 style={{fontSize:'18px',fontWeight:900,color:'var(--red)',marginBottom:'10px'}}>
+          {isPermission ? 'Firebase Permission Error' : 'Firebase সংযোগ সমস্যা'}
+        </h3>
+        <p style={{fontSize:'13px',color:'var(--text2)',lineHeight:'1.7',marginBottom:'14px'}}>
+          {isPermission
+            ? 'Firestore Security Rules এ write permission নেই। নিচের rules Firebase Console এ সেট করতে হবে:'
+            : `সমস্যা: ${error}`
+          }
+        </p>
+
+        {isPermission && (
+          <div className="rules-box">
+            <p style={{fontSize:'12px',fontWeight:700,color:'var(--blue)',marginBottom:'4px'}}>
+              📋 Firebase Console → Firestore Database → Rules এ এটি পেস্ট করুন:
+            </p>
+            <pre className="rules-pre">{RULES}</pre>
+            <div style={{marginTop:'12px',padding:'10px 14px',background:'rgba(240,165,0,.08)',border:'1px solid rgba(240,165,0,.2)',borderRadius:'10px'}}>
+              <p style={{fontSize:'11px',color:'var(--amber)',fontWeight:700}}>🔗 Steps:</p>
+              <p style={{fontSize:'11px',color:'var(--text3)',lineHeight:'1.8',marginTop:'4px'}}>
+                1. console.firebase.google.com এ যান<br/>
+                2. আপনার project select করুন<br/>
+                3. Firestore Database → Rules tab এ যান<br/>
+                4. উপরের rules paste করুন → Publish করুন
+              </p>
+            </div>
+          </div>
+        )}
+
+        <button
+          className="btn btn-amber"
+          style={{marginTop:'18px'}}
+          onClick={onRetry}
+        >
+          🔄 আবার চেষ্টা করুন
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ════════════ LOGIN ════════════
+function Login({ onLogin }) {
+  const [u,setU]=useState('');
+  const [p,setP]=useState('');
+  const [err,setErr]=useState('');
+  const attempt = () => {
+    if (u===ADMIN_U && p===ADMIN_P) {
+      sessionStorage.setItem('dukan_admin','1');
+      onLogin();
+    } else {
+      setErr('❌ ভুল username বা password!');
+      setP('');
+      setTimeout(()=>setErr(''),3000);
+    }
+  };
+  return (
+    <div className="login-bg">
+      <div className="fade" style={{width:'340px',maxWidth:'94vw',background:'var(--bg2)',border:'1px solid rgba(240,165,0,.25)',borderRadius:'20px',padding:'36px 28px',boxShadow:'0 0 50px rgba(240,165,0,.07)'}}>
+        <div style={{textAlign:'center',marginBottom:'28px'}}>
+          <div style={{fontSize:'48px',marginBottom:'10px',filter:'drop-shadow(0 0 16px rgba(240,165,0,.5))'}}>🏪</div>
+          <h1 style={{fontSize:'20px',fontWeight:900,color:'var(--amber)'}}>দোকান Admin</h1>
+          <p className="mono" style={{fontSize:'10px',color:'var(--text3)',marginTop:'3px'}}>AUTHORIZED ACCESS ONLY</p>
+        </div>
+        {[['Username','text',u,setU,'admin'],['Password','password',p,setP,'••••••••']].map(([lbl,type,val,setFn,ph])=>(
+          <div key={lbl} style={{marginBottom:'13px'}}>
+            <label className="inp-lbl">{lbl}</label>
+            <input className="inp" type={type} value={val} onChange={e=>setFn(e.target.value)} onKeyDown={e=>e.key==='Enter'&&attempt()} placeholder={ph}/>
+          </div>
+        ))}
+        {err&&<div style={{padding:'9px 13px',borderRadius:'8px',background:'var(--red-d)',border:'1px solid rgba(224,82,82,.3)',color:'var(--red)',fontSize:'12px',fontWeight:700,marginBottom:'12px',textAlign:'center'}}>{err}</div>}
+        <button className="btn btn-amber" style={{width:'100%',padding:'13px',fontSize:'14px'}} onClick={attempt}>⚡ প্রবেশ করুন</button>
+        <p style={{fontSize:'11px',color:'var(--text3)',textAlign:'center',marginTop:'10px'}}>Username: <b style={{color:'var(--amber)'}}>admin</b> · Password: <b style={{color:'var(--amber)'}}>dukan@123</b></p>
+      </div>
+    </div>
+  );
+}
+
+// ════════════ PAGE: DASHBOARD ════════════
+function Dashboard({ data, onRefresh, push }) {
+  const { days=[], baki=[], joma=0 } = data;
+  const totalSell   = days.reduce((s,d)=>s+(parseFloat(d.bikri)||0),0);
+  const totalBuy    = days.reduce((s,d)=>s+(parseFloat(d.kena)||0),0);
+  const totalProfit = totalSell - totalBuy;
+  const totalBaki   = baki.reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
+
+  const cards=[
+    {ic:'📊',val:fmtEN(totalSell),lbl:'মোট বিক্রি',accent:'linear-gradient(90deg,var(--amber),var(--amber2))'},
+    {ic:'🛒',val:fmtEN(totalBuy),lbl:'মোট কেনা',accent:'linear-gradient(90deg,var(--red),#ff7070)'},
+    {ic:'💹',val:fmtEN(totalProfit),lbl:totalProfit>=0?'মোট লাভ':'মোট লোকসান',accent:`linear-gradient(90deg,${totalProfit>=0?'var(--green),#6ee77f':'var(--red),#ff7070'})`},
+    {ic:'🏦',val:fmtEN(joma),lbl:'দোকানে জমা',accent:'linear-gradient(90deg,var(--green),#6ee77f)'},
+    {ic:'📋',val:fmtEN(totalBaki),lbl:'মোট বাকি',accent:'linear-gradient(90deg,var(--red),#ff7070)'},
+    {ic:'📅',val:days.length,lbl:'মোট দিন',accent:'linear-gradient(90deg,var(--blue),#8ecfff)'},
+  ];
+
+  return (
+    <div className="fade" style={{display:'flex',flexDirection:'column',gap:'18px'}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(145px,1fr))',gap:'10px'}}>
+        {cards.map(c=>(
+          <div key={c.lbl} className="sc" style={{'--accent':c.accent}}>
+            <div style={{fontSize:'20px',marginBottom:'7px'}}>{c.ic}</div>
+            <div className="sc-val" style={{color:c.accent.includes('red')?'var(--red)':c.accent.includes('green')?'var(--green)':c.accent.includes('blue')?'var(--blue)':'var(--amber)'}}>{c.val}</div>
+            <div className="sc-lbl">{c.lbl}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{background:'rgba(240,165,0,0.06)',border:'1px solid rgba(240,165,0,0.18)',borderRadius:'14px',padding:'16px'}}>
+        <p style={{fontSize:'13px',color:'var(--amber)',fontWeight:700,marginBottom:'8px'}}>📌 দ্রুত তথ্য</p>
+        <p style={{fontSize:'12px',color:'var(--text2)',lineHeight:'1.8'}}>
+          🔴 মোট বাকিদার: <b style={{color:'var(--red)'}}>{baki.length} জন</b> &nbsp;·&nbsp;
+          🟢 মোট দিনের হিসাব: <b style={{color:'var(--green)'}}>{days.length} দিন</b> &nbsp;·&nbsp;
+          💰 আজকের তারিখ: <b style={{color:'var(--amber)'}}>{todayKey()}</b>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ════════════ PAGE: DAILY BIKRI ════════════
+function DailyBikri({ data, onSave, push }) {
+  const [bikri,setBikri]=useState('');
+  const [kena,setKena]=useState('');
+  const [date,setDate]=useState(todayKey());
+  const [note,setNote]=useState('');
+  const [saving,setSaving]=useState(false);
+
+  const days=[...(data.days||[])].sort((a,b)=>(b.dateKey||'').localeCompare(a.dateKey||''));
+
+  const handleAdd = async () => {
+    if (!bikri&&!kena) { push('বিক্রি বা কেনার পরিমাণ দিন!','err'); return; }
+    if (!date)         { push('তারিখ দিন!','err'); return; }
+    setSaving(true);
+    try {
+      const existing = (data.days||[]).findIndex(d=>d.dateKey===date);
+      const newDays = [...(data.days||[])];
+      const entry = { dateKey:date, bikri:parseFloat(bikri)||0, kena:parseFloat(kena)||0, note:note.trim(), at:Date.now() };
+      if (existing!==-1) {
+        newDays[existing]=entry;
+        push('✅ '+date+' এর হিসাব আপডেট হয়েছে!','ok');
+      } else {
+        newDays.push(entry);
+        push('✅ নতুন হিসাব যোগ হয়েছে!','ok');
+      }
+      await onSave({ ...data, days: newDays });
+      setBikri(''); setKena(''); setNote(''); setDate(todayKey());
+    } catch(e) { push('Error: '+e.message,'err'); }
+    setSaving(false);
+  };
+
+  const handleDelete = async (dateKey) => {
+    if (!window.confirm(`"${dateKey}" এর হিসাব মুছে ফেলবো?`)) return;
+    try {
+      const newDays = (data.days||[]).filter(d=>d.dateKey!==dateKey);
+      await onSave({ ...data, days: newDays });
+      push('🗑️ হিসাব মুছে ফেলা হয়েছে','info');
+    } catch(e) { push('Error: '+e.message,'err'); }
+  };
+
+  return (
+    <div className="fade" style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+      <div className="card-amber" style={{padding:'20px'}}>
+        <p style={{fontWeight:800,fontSize:'15px',color:'var(--amber)',marginBottom:'16px'}}>➕ প্রতিদিনের হিসাব যোগ করুন</p>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',marginBottom:'12px'}}>
+          <div>
+            <label className="inp-lbl">তারিখ</label>
+            <input className="inp" type="date" value={date} onChange={e=>setDate(e.target.value)}/>
+          </div>
+          <div>
+            <label className="inp-lbl">আজকের বিক্রি (৳)</label>
+            <input className="inp" type="number" value={bikri} onChange={e=>setBikri(e.target.value)} placeholder="যেমন: 5000"/>
+          </div>
+          <div>
+            <label className="inp-lbl">পণ্য কেনা (৳)</label>
+            <input className="inp" type="number" value={kena} onChange={e=>setKena(e.target.value)} placeholder="যেমন: 2000"/>
+          </div>
+          <div>
+            <label className="inp-lbl">নোট (ঐচ্ছিক)</label>
+            <input className="inp" type="text" value={note} onChange={e=>setNote(e.target.value)} placeholder="কোনো বিশেষ তথ্য"/>
+          </div>
+        </div>
+        <button className="btn btn-amber" onClick={handleAdd} disabled={saving}>
+          {saving ? <><span className="sp" style={{marginRight:'6px'}}/>সেভ হচ্ছে...</> : '💾 হিসাব সেভ করুন'}
+        </button>
+        <p style={{fontSize:'11px',color:'var(--text3)',marginTop:'8px'}}>⚠️ একই তারিখের হিসাব দিলে আপডেট হয়ে যাবে</p>
+      </div>
+
+      <div className="tbl-wrap">
+        <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <p style={{fontWeight:800,color:'var(--text)',fontSize:'14px'}}>📅 প্রতিদিনের হিসাব</p>
+          <span className="mono" style={{fontSize:'11px',color:'var(--text3)'}}>{days.length} দিন</span>
+        </div>
+        {days.length===0
+          ?<div style={{padding:'32px',textAlign:'center',color:'var(--text3)',fontSize:'13px'}}>কোনো হিসাব নেই এখনো</div>
+          :<table className="tbl">
+            <thead><tr><th>তারিখ</th><th>বিক্রি</th><th>কেনা</th><th>লাভ/ক্ষতি</th><th>নোট</th><th>মুছুন</th></tr></thead>
+            <tbody>
+              {days.map(d=>{
+                const profit=(parseFloat(d.bikri)||0)-(parseFloat(d.kena)||0);
+                const isToday=d.dateKey===todayKey();
+                return (
+                  <tr key={d.dateKey} style={isToday?{background:'rgba(240,165,0,.04)'}:{}}>
+                    <td className="mono" style={{fontWeight:700,color:isToday?'var(--amber)':'var(--text2)',fontSize:'12px'}}>
+                      {d.dateKey} {isToday&&<span className="badge badge-amber">আজ</span>}
+                    </td>
+                    <td className="mono" style={{fontWeight:800,color:'var(--green)'}}>{fmtEN(d.bikri)}</td>
+                    <td className="mono" style={{fontWeight:800,color:'var(--red)'}}>{fmtEN(d.kena)}</td>
+                    <td className="mono" style={{fontWeight:800,color:profit>=0?'var(--green)':'var(--red)'}}>{profit>=0?'+':''}{fmtEN(profit)}</td>
+                    <td style={{fontSize:'12px',color:'var(--text3)',fontStyle:'italic'}}>{d.note||'—'}</td>
+                    <td><button className="btn btn-red btn-sm" onClick={()=>handleDelete(d.dateKey)}>🗑️</button></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        }
+      </div>
+    </div>
+  );
+}
+
+// ════════════ PAGE: JOMA ════════════
+function Joma({ data, onSave, push }) {
+  const [amount,setAmount]=useState('');
+  const [saving,setSaving]=useState(false);
+
+  const handleUpdate = async () => {
+    const v = parseFloat(amount);
+    if (isNaN(v)||v<0) { push('সঠিক পরিমাণ দিন!','err'); return; }
+    setSaving(true);
+    try {
+      await onSave({ ...data, joma: v });
+      push('✅ জমার পরিমাণ আপডেট হয়েছে!','ok');
+      setAmount('');
+    } catch(e) { push('Error: '+e.message,'err'); }
+    setSaving(false);
+  };
+
+  return (
+    <div className="fade" style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+      <div style={{background:'linear-gradient(135deg,rgba(63,185,80,.12),rgba(63,185,80,.06))',border:'1px solid rgba(63,185,80,.25)',borderRadius:'16px',padding:'22px',display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'4px'}}>
+        <div>
+          <p style={{fontSize:'12px',color:'rgba(63,185,80,.7)',fontWeight:700,marginBottom:'6px'}}>💰 বর্তমান জমা</p>
+          <p className="mono" style={{fontSize:'38px',fontWeight:900,color:'var(--green)'}}>{fmtEN(data.joma||0)}</p>
+        </div>
+        <span style={{fontSize:'48px',opacity:.2}}>🏦</span>
+      </div>
+
+      <div className="card-green" style={{padding:'20px'}}>
+        <p style={{fontWeight:800,fontSize:'15px',color:'var(--green)',marginBottom:'14px'}}>🔄 জমার পরিমাণ আপডেট করুন</p>
+        <p style={{fontSize:'12px',color:'var(--text3)',marginBottom:'12px'}}>নতুন জমার পরিমাণ লিখুন (এটা সম্পূর্ণ নতুন ব্যালেন্স হিসেবে সেট হবে)</p>
+        <div style={{display:'flex',gap:'10px'}}>
+          <input className="inp" type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="নতুন জমার পরিমাণ (৳)" style={{flex:1}}
+            onKeyDown={e=>e.key==='Enter'&&handleUpdate()}/>
+          <button className="btn btn-green" onClick={handleUpdate} disabled={saving}>
+            {saving?<span className="sp"/>:'💾 আপডেট'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════ PAGE: BAKI ════════════
+function Baki({ data, onSave, push }) {
+  const [name,setName]=useState('');
+  const [amount,setAmount]=useState('');
+  const [note,setNote]=useState('');
+  const [saving,setSaving]=useState(false);
+
+  const baki=[...(data.baki||[])].sort((a,b)=>(b.amount||0)-(a.amount||0));
+  const totalBaki=baki.reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
+
+  const handleAdd=async()=>{
+    if (!name.trim()||!amount||parseFloat(amount)<=0) { push('নাম ও পরিমাণ দিন!','err'); return; }
+    setSaving(true);
+    try {
+      const entry={ id:`b_${Date.now()}`, name:name.trim(), amount:parseFloat(amount), note:note.trim(), at:Date.now() };
+      const newBaki=[...(data.baki||[]),entry];
+      await onSave({...data,baki:newBaki});
+      push('✅ বাকি যোগ হয়েছে!','ok');
+      setName('');setAmount('');setNote('');
+    } catch(e) { push('Error: '+e.message,'err'); }
+    setSaving(false);
+  };
+
+  const handleDelete=async(id)=>{
+    const b=baki.find(x=>x.id===id);
+    if (!window.confirm(`"${b?.name}" এর বাকি (${fmtEN(b?.amount)}) মুছে ফেলবো?`)) return;
+    try {
+      const newBaki=(data.baki||[]).filter(x=>x.id!==id);
+      await onSave({...data,baki:newBaki});
+      push('🗑️ বাকি মুছে ফেলা হয়েছে','info');
+    } catch(e) { push('Error: '+e.message,'err'); }
+  };
+
+  const handlePaid=async(id)=>{
+    const b=baki.find(x=>x.id===id);
+    if (!window.confirm(`"${b?.name}" (${fmtEN(b?.amount)}) বাকি পরিশোধ হয়েছে? এটি তালিকা থেকে সরানো হবে।`)) return;
+    try {
+      const newBaki=(data.baki||[]).filter(x=>x.id!==id);
+      await onSave({...data,baki:newBaki});
+      push('✅ বাকি পরিশোধ হয়েছে!','ok');
+    } catch(e) { push('Error: '+e.message,'err'); }
+  };
+
+  return (
+    <div className="fade" style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}}>
+        <div style={{background:'var(--red-d)',border:'1px solid rgba(224,82,82,.22)',borderRadius:'14px',padding:'16px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div>
+            <p style={{fontSize:'11px',color:'var(--red)',fontWeight:700,marginBottom:'4px'}}>⚠️ মোট বাকি</p>
+            <p className="mono" style={{fontSize:'26px',fontWeight:900,color:'var(--red)'}}>{fmtEN(totalBaki)}</p>
+          </div>
+          <span style={{fontSize:'36px',opacity:.2}}>📋</span>
+        </div>
+        <div style={{background:'rgba(88,166,255,.07)',border:'1px solid rgba(88,166,255,.2)',borderRadius:'14px',padding:'16px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div>
+            <p style={{fontSize:'11px',color:'var(--blue)',fontWeight:700,marginBottom:'4px'}}>👥 বাকিদার</p>
+            <p className="mono" style={{fontSize:'26px',fontWeight:900,color:'var(--blue)'}}>{baki.length} জন</p>
+          </div>
+          <span style={{fontSize:'36px',opacity:.2}}>👤</span>
+        </div>
+      </div>
+
+      <div className="card-red" style={{padding:'20px'}}>
+        <p style={{fontWeight:800,fontSize:'15px',color:'var(--red)',marginBottom:'14px'}}>➕ নতুন বাকি যোগ করুন</p>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'10px'}}>
+          <div>
+            <label className="inp-lbl">বাকিদারের নাম</label>
+            <input className="inp" value={name} onChange={e=>setName(e.target.value)} placeholder="নাম লিখুন"/>
+          </div>
+          <div>
+            <label className="inp-lbl">বাকির পরিমাণ (৳)</label>
+            <input className="inp" type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="যেমন: 500"/>
+          </div>
+          <div style={{gridColumn:'span 2'}}>
+            <label className="inp-lbl">নোট (ঐচ্ছিক)</label>
+            <input className="inp" value={note} onChange={e=>setNote(e.target.value)} placeholder="কিসের বাকি, কোন তারিখে ইত্যাদি"/>
+          </div>
+        </div>
+        <button className="btn btn-red" onClick={handleAdd} disabled={saving}>
+          {saving?<><span className="sp" style={{marginRight:'6px'}}/>সেভ হচ্ছে...</>:'📝 বাকি যোগ করুন'}
+        </button>
+      </div>
+
+      <div className="tbl-wrap">
+        <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <p style={{fontWeight:800,color:'var(--text)',fontSize:'14px'}}>📋 বাকির তালিকা</p>
+          <span className="mono" style={{fontSize:'11px',color:'var(--text3)'}}>{baki.length} জন</span>
+        </div>
+        {baki.length===0
+          ?<div style={{padding:'32px',textAlign:'center',color:'var(--text3)',fontSize:'13px'}}>✅ কোনো বাকি নেই!</div>
+          :<table className="tbl">
+            <thead><tr><th>#</th><th>নাম</th><th>পরিমাণ</th><th>নোট</th><th>তারিখ</th><th>Action</th></tr></thead>
+            <tbody>
+              {baki.map((b,i)=>(
+                <tr key={b.id}>
+                  <td className="mono" style={{color:'var(--text3)',fontSize:'11px'}}>{i+1}</td>
+                  <td style={{fontWeight:700,color:'var(--text)'}}>{b.name}</td>
+                  <td className="mono" style={{fontWeight:900,color:'var(--red)',fontSize:'15px'}}>{fmtEN(b.amount)}</td>
+                  <td style={{fontSize:'12px',color:'var(--text3)',fontStyle:'italic'}}>{b.note||'—'}</td>
+                  <td className="mono" style={{fontSize:'11px',color:'var(--text3)'}}>{fmtDate(b.at)}</td>
+                  <td style={{display:'flex',gap:'5px',flexWrap:'wrap'}}>
+                    <button className="btn btn-green btn-sm" onClick={()=>handlePaid(b.id)}>✅ পরিশোধ</button>
+                    <button className="btn btn-red btn-sm" onClick={()=>handleDelete(b.id)}>🗑️</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        }
+        {baki.length>0&&(
+          <div style={{padding:'12px 16px',borderTop:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(224,82,82,.04)'}}>
+            <span style={{fontWeight:700,fontSize:'14px',color:'var(--red)'}}>মোট বাকি</span>
+            <span className="mono" style={{fontSize:'20px',fontWeight:900,color:'var(--red)'}}>{fmtEN(totalBaki)}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ════════════ PAGE: SETTINGS ════════════
+function Settings({ data, onSave, push }) {
+  const [shopName,setShopName]=useState(data.settings?.shopName||'');
+  const [shopSub,setShopSub]=useState(data.settings?.shopSub||'');
+  const [saving,setSaving]=useState(false);
+
+  const handleSave=async()=>{
+    setSaving(true);
+    try {
+      await onSave({...data,settings:{shopName:shopName.trim()||'দোকান হিসাব',shopSub:shopSub.trim()||'লাইভ আপডেট'}});
+      push('✅ Settings সেভ হয়েছে!','ok');
+    } catch(e) { push('Error: '+e.message,'err'); }
+    setSaving(false);
+  };
+
+  const handleReset=async()=>{
+    if (!window.confirm('⚠️ সব ডেটা মুছে ফেলবো? এটা পূর্বাবস্থায় ফেরানো যাবে না!')) return;
+    if (!window.confirm('সত্যিই সব মুছতে চান?')) return;
+    try {
+      await onSave({settings:{shopName:shopName||'দোকান হিসাব',shopSub:shopSub||'লাইভ আপডেট'},days:[],baki:[],joma:0});
+      push('🗑️ সব ডেটা মুছে ফেলা হয়েছে','info');
+    } catch(e) { push('Error: '+e.message,'err'); }
+  };
+
+  return (
+    <div className="fade" style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+      <div className="card" style={{padding:'20px'}}>
+        <p style={{fontWeight:800,fontSize:'15px',color:'var(--amber)',marginBottom:'14px'}}>⚙️ দোকানের তথ্য</p>
+        <div style={{display:'flex',flexDirection:'column',gap:'12px',marginBottom:'14px'}}>
+          <div>
+            <label className="inp-lbl">দোকানের নাম (Public Page এ দেখাবে)</label>
+            <input className="inp" value={shopName} onChange={e=>setShopName(e.target.value)} placeholder="আমার দোকান"/>
+          </div>
+          <div>
+            <label className="inp-lbl">Subtitle / বিবরণ</label>
+            <input className="inp" value={shopSub} onChange={e=>setShopSub(e.target.value)} placeholder="লাইভ হিসাব · প্রতিদিন আপডেট"/>
+          </div>
+        </div>
+        <button className="btn btn-amber" onClick={handleSave} disabled={saving}>
+          {saving?<><span className="sp" style={{marginRight:'6px'}}/>সেভ হচ্ছে...</>:'💾 Settings সেভ করুন'}
+        </button>
+      </div>
+
+      <div style={{background:'var(--red-d)',border:'2px solid rgba(224,82,82,.25)',borderRadius:'14px',padding:'20px'}}>
+        <p style={{fontWeight:800,fontSize:'15px',color:'var(--red)',marginBottom:'8px'}}>⚠️ বিপজ্জনক Zone</p>
+        <p style={{fontSize:'12px',color:'var(--text3)',marginBottom:'14px'}}>নিচের বোতামে ক্লিক করলে সমস্ত দিনের হিসাব এবং বাকির তালিকা মুছে যাবে। এটা পূর্বাবস্থায় ফেরানো যাবে না।</p>
+        <button className="btn btn-red" onClick={handleReset}>🗑️ সব ডেটা মুছে ফেলুন</button>
+      </div>
+    </div>
+  );
+}
+
+// ════════════ MAIN ADMIN APP ════════════
+function AdminApp() {
+  const [loggedIn,setLoggedIn]=useState(sessionStorage.getItem('dukan_admin')==='1');
+  const [page,setPage]=useState('dashboard');
+  const [data,setData]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [fbError,setFbError]=useState(null);
+  const {toasts,push}=useToast();
+  const unsubRef = useRef(null);
+
+  // Real-time listener
+  const startRealtime = useCallback(()=>{
+    if (!db) { push('Firebase সংযোগ নেই!','err'); return; }
+    setLoading(true);
+    setFbError(null);
+
+    // Unsubscribe previous
+    if (unsubRef.current) { unsubRef.current(); unsubRef.current=null; }
+
+    unsubRef.current = DOC().onSnapshot(
+      snap => {
+        const d = snap.exists ? snap.data() : {};
+        setData({
+          settings: d.settings || {},
+          days:     d.days     || [],
+          baki:     d.baki     || [],
+          joma:     d.joma     || 0,
+        });
+        setLoading(false);
+        setFbError(null);
+      },
+      err => {
+        console.error('Firestore error:', err);
+        setFbError(err.message || 'অজানা error');
+        setLoading(false);
+      }
+    );
+  },[]);
+
+  useEffect(()=>{
+    if(loggedIn) startRealtime();
+    return ()=>{ if(unsubRef.current) unsubRef.current(); };
+  },[loggedIn]);
+
+  const handleSave=async(newData)=>{
+    await saveData(newData);
+    // No need to setData — real-time listener will update it
+  };
+
+  if (!loggedIn) return <Login onLogin={()=>setLoggedIn(true)}/>;
+
+  const navItems=[
+    {id:'dashboard',ic:'📊',lb:'Dashboard'},
+    {id:'bikri',    ic:'📅',lb:'দৈনিক হিসাব'},
+    {id:'joma',     ic:'🏦',lb:'দোকানে জমা'},
+    {id:'baki',     ic:'📋',lb:'বাকির হিসাব'},
+    {id:'settings', ic:'⚙️',lb:'Settings'},
+  ];
+  const titles={dashboard:'📊 Dashboard',bikri:'📅 দৈনিক হিসাব',joma:'🏦 দোকানে জমা',baki:'📋 বাকির হিসাব',settings:'⚙️ Settings'};
+
+  return (
+    <div style={{display:'flex',minHeight:'100vh'}}>
+      {/* Sidebar */}
+      <aside style={{width:'200px',flexShrink:0,background:'var(--bg2)',borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',position:'sticky',top:0,height:'100vh',overflowY:'auto'}}>
+        <div style={{padding:'20px 16px 16px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:'10px'}}>
+          <span style={{fontSize:'22px',filter:'drop-shadow(0 0 8px rgba(240,165,0,.5))'}}>🏪</span>
+          <div><p style={{fontWeight:900,color:'var(--amber)',fontSize:'15px'}}>দোকান Admin</p><p className="mono" style={{fontSize:'9px',color:'var(--text3)',marginTop:'1px'}}>CONTROL PANEL</p></div>
+        </div>
+        <nav style={{flex:1,padding:'10px 8px'}}>
+          {navItems.map(n=>(
+            <button key={n.id} className={`nav-btn${page===n.id?' active':''}`} onClick={()=>setPage(n.id)}>
+              <span style={{fontSize:'16px'}}>{n.ic}</span>{n.lb}
+            </button>
+          ))}
+        </nav>
+        <div style={{padding:'10px 8px',borderTop:'1px solid var(--border)'}}>
+          <div style={{padding:'8px 10px',borderRadius:'10px',background:'rgba(240,165,0,.07)',border:'1px solid rgba(240,165,0,.12)',marginBottom:'8px'}}>
+            <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+              <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'var(--amber)',animation:'pulse 2s infinite'}}/>
+              <p style={{fontSize:'11px',fontWeight:700,color:'var(--amber)'}}>admin</p>
+            </div>
+            <p className="mono" style={{fontSize:'9px',color:'var(--text3)',marginTop:'1px'}}>LOGGED IN</p>
+          </div>
+          <button onClick={()=>{if(unsubRef.current)unsubRef.current();sessionStorage.removeItem('dukan_admin');setLoggedIn(false);}} style={{width:'100%',padding:'8px',borderRadius:'9px',border:'1px solid var(--border)',background:'transparent',color:'var(--text3)',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:'Noto Sans Bengali',transition:'all .2s'}} onMouseEnter={e=>{e.currentTarget.style.background='var(--red-d)';e.currentTarget.style.color='var(--red)';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text3)';}}>
+            🚪 Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <main style={{flex:1,overflow:'auto',background:'var(--bg)'}}>
+        {/* Topbar */}
+        <div style={{position:'sticky',top:0,zIndex:20,padding:'13px 22px',background:'rgba(13,17,23,.97)',backdropFilter:'blur(20px)',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div>
+            <p style={{fontWeight:900,fontSize:'18px',color:'var(--text)'}}>{titles[page]}</p>
+            <p className="mono" style={{fontSize:'10px',color:'var(--text3)',marginTop:'1px'}}>
+              {new Date().toLocaleString('bn-BD',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+              {loading&&<>&nbsp;<span className="sp" style={{width:'11px',height:'11px',borderWidth:'1.5px'}}/></>}
+              {fbError&&<span style={{color:'var(--red)',marginLeft:'8px'}}>⚠️ Firebase error</span>}
+            </p>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={()=>{startRealtime();push('🔄 রিফ্রেশ হচ্ছে...','info');}} disabled={loading}>
+            {loading?<><span className="sp" style={{width:'12px',height:'12px',borderWidth:'1.5px',marginRight:'4px'}}/>লোড হচ্ছে...</>:'🔄 Refresh'}
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{padding:'20px 22px 40px'}}>
+          {fbError ? (
+            <FirebaseErrorBox error={fbError} onRetry={()=>startRealtime()}/>
+          ) : loading||!data ? (
+            <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'300px',flexDirection:'column',gap:'14px'}}>
+              <span className="sp" style={{width:'30px',height:'30px',borderWidth:'3px'}}/>
+              <p style={{color:'var(--text3)',fontSize:'13px'}}>Firebase থেকে ডেটা লোড হচ্ছে...</p>
+            </div>
+          ) : {
+            dashboard:<Dashboard data={data} onRefresh={startRealtime} push={push}/>,
+            bikri:<DailyBikri data={data} onSave={handleSave} push={push}/>,
+            joma:<Joma data={data} onSave={handleSave} push={push}/>,
+            baki:<Baki data={data} onSave={handleSave} push={push}/>,
+            settings:<Settings data={data} onSave={handleSave} push={push}/>,
+          }[page]}
+        </div>
+      </main>
+
+      {/* Toasts */}
+      <div className="toast-wrap">{toasts.map(t=><div key={t.id} className={`toast t-${t.type}`}>{t.msg}</div>)}</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<AdminApp/>);
+</script>
+</body>
+</html>
